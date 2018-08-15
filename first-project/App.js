@@ -1,61 +1,80 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableHighlight } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default class App extends React.Component {
-
-  constructor(props) {
-    super(props);
-    this.state = {pressing: false};
-  }
-
-  _onPressIn = () => {
-    this.setState({pressing: true});
-  };
-
-  _onPressOut = () => {
-    this.setState({pressing: false});
-  };
-
   render() {
     return (
-      <View style={styles.container}>
-        <TouchableHighlight
-          onPressIn={this._onPressIn}
-          onPressOut={this._onPressOut}
-          accessibilityLabel={'PUSH ME'}
-          style={styles.touchable}>
-          <View style={styles.button}>
-            <Text style={styles.welcome}>
-              {this.state.pressing ? 'EEK!': 'PUSH ME'}
-            </Text>
+      <View style={styles.parent}>
+        <View style={styles.topBlock}>
+          <View style={styles.leftCol}>
+            <View style={[styles.cellOne, styles.base]}><Text>1</Text></View>
+            <View style={[styles.base,styles.cellTwo]}><Text>2</Text></View>
           </View>
-        </TouchableHighlight>
+          <View style={[styles.cellThree, styles.base]}><Text>3</Text></View>
+        </View>
+        <View style={styles.bottomBlock}>
+          <View style={[styles.cellFour, styles.base]}><Text>4</Text></View>
+          <View style={[styles.cellFive, styles.base]}><Text>5</Text></View>
+          <View style={[styles.bottomRight]}>
+            <View style={[styles.cellSix, styles.base]}><Text>6</Text></View>
+            <View style={[styles.cellSeven, styles.base]}><Text>7</Text></View>
+          </View>
+        </View>
       </View>
     );
   }
 }
 
 const styles = StyleSheet.create({
-  container: {
+  parent: {
+    flexDirection: 'column',
+    position: 'absolute',
+    top: 30,
+    left: 0,
+    right: 0,
+    bottom: 0
+  },
+  base: {
+    borderColor: '#000000',
+    borderWidth: 5
+  },
+  topBlock: {
+    flexDirection: 'row',
+    flex: 5
+  },
+  leftCol: {
+    flex: 2,
+  },
+  cellOne: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderBottomWidth: 15
   },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-    color: '#FFFFFF'
+  cellTwo: {
+    flex: 3
   },
-  touchable: {
-    borderRadius: 100
+  cellThree: {
+    flex: 5,
+    backgroundColor: '#FF0000'
   },
-  button: {
-    backgroundColor: '#FF0000',
-    borderRadius: 100,
-    height: 200,
-    width: 200,
-    justifyContent: 'center'
+  bottomBlock: {
+    flexDirection: 'row',
+    flex: 2
+  },
+  cellFour: {
+    flex: 2,
+    backgroundColor: '#0000FF'
+  },
+  cellFive: {
+    flex: 3
+  },
+  bottomRight: {
+    flex: 2
+  },
+  cellSix: {
+    flex: 1
+  },
+  cellSeven: {
+    flex: 1,
+    backgroundColor: '#FFFF00'
   }
 });
