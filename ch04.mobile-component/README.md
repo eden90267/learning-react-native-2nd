@@ -611,5 +611,281 @@ const mockBooks = [
 然後加入一個可以 render 這些假資料的元件 `<BookItem>`：
 
 ```javascript
+// Book
 
+import React from 'react';
+import { StyleSheet, Text, View, Image } from 'react-native';
+
+const styles = StyleSheet.create({
+  bookItem: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomColor: '#AAAAAA',
+    borderBottomWidth: 2,
+    padding: 5,
+    height: 175
+  },
+  cover: {
+    flex: 1,
+    height: 150,
+    resizeMode: 'contain'
+  },
+  info: {
+    flex: 3,
+    alignItems: 'flex-end',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    padding: 20
+  },
+  author: {fontSize: 18},
+  title: {fontSize: 18, fontWeight: 'bold'}
+});
+
+export default class App extends React.Component {
+
+  render() {
+    return (
+      <View style={styles.bookItem}>
+        <Image style={styles.cover} source={{uri: this.props.coverURL}}/>
+        <View style={styles.info}>
+          <Text style={styles.author}>{this.props.author}</Text>
+          <Text style={styles.title}>{this.props.title}</Text>
+        </View>
+      </View>
+    );
+  }
+}
 ```
+
+```javascript
+// App.js
+
+import React from 'react';
+import {StyleSheet, View, FlatList} from 'react-native';
+import BookItem from "./BookItem";
+
+const mockBooks = [
+  {
+    rank: 1,
+    title: "GATHERING PREY",
+    author: "John Sandford",
+    book_image: "http://du.ec2.nytimes.com.s3.amazonaws.com/prd/books/9780399168796.jpg"
+  },
+  {
+    rank: 2,
+    title: "MEMORY MAN",
+    author: "David Baldacci",
+    book_image: "http://du.ec2.nytimes.com.s3.amazonaws.com/prd/books/9781455586387.jpg"
+  }
+];
+
+export default class App extends React.Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: this._addKeysToBooks(mockBooks)
+    };
+  }
+
+  _addKeysToBooks = books => {
+    return books.map(book => {
+      return Object.assign(book, {key: book.title})
+    })
+  };
+
+  _renderItem = ({item}) => {
+    return (
+      <BookItem coverURL={item.book_image}
+                title={item.key}
+                author={item.author}/>
+    )
+  };
+
+  render() {
+    return (
+      <View style={styles.container}>
+        <FlatList data={this.state.data} renderItem={this._renderItem}/>
+      </View>
+    );
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 22
+  }
+});
+```
+
+### 整合真實資料
+
+```javascript
+// NYT.js
+
+const API_KEY = "73b19491b83909c7e07016f4bb4644f9:2:60667290";
+const LIST_NAME = "hardcover-fiction";
+const API_STEM = "https://api.nytimes.com/svc/books/v3/lists";
+
+function fetchBooks(list_name = LIST_NAME) {
+  let url = `${API_STEM}/${list_name}?response-format=json&api-key=${API_KEY}`;
+  return fetch(url)
+    .then(response => response.json())
+    .then(responseJson => {
+      return responseJson.results.books;
+    })
+    .catch(error => {
+      console.error(error);
+    });
+}
+
+export default {fetchBooks};
+```
+
+現在將函式庫引入元件：
+
+```javascript
+export default class App extends React.Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: []
+    };
+  }
+  
+  // ...
+  
+  _refreshData = () => {
+    NYT.fetchBooks().then(books => {
+      this.setState({data: this._addKeysToBooks(books)});
+    })
+  };
+  
+  componentDidMount() {
+    this._refreshData();
+  };
+  
+  // ...
+  
+}
+```
+
+只要記得把你的資料組織得宜，使用 `<FlatList>` 元件是很直截的，除了處理捲動與觸控互動外，`<FlatList>` 也做了很多加速 render 和減少記憶體使用量的效能優化。
+
+### 使用 `<SectionList>`
+
+- 設計來顯示資料集合
+- 集合內是同質性並可選擇要不要加標頭
+
+舉例，如果要顯示數種不同類的暢銷書，並為每一類加上標頭，此時選用 `<SectionList>` 就很合適
+
+`<SectionList>` 要用到下列屬性：
+
+- sections
+  - 陣列
+    - 元素 (一塊資料)
+      - title
+      - data (同 `<FlatList>` data，有唯一 key 屬性)
+- renderItem
+- renderSectionHeader
+
+我們來將 _renderData 方法進階，可抓取小說和非小說，並更新對應的元件狀態：
+
+```javascript
+_refreshData = () => {
+  Promise
+    .all([
+      NYT.fetchBooks('hardcover-fiction'),
+      NYT.fetchBooks('hardcover-nonfiction')
+    ])
+    .then(results => {
+      if (results.length !== 2) {
+        console.error('Unexpected results');
+      }
+
+      this.setState({
+        sections: [
+          {
+            title: 'Hardcover Fiction',
+            data: this._addKeysToBooks(results[0])
+          },
+          {
+            title: 'Hardcover NonFiction',
+            data: this._addKeysToBooks(results[1])
+          }
+        ]
+      })
+    });
+};
+```
+
+不用更新 _renderItem 方法，但需加上新的 _renderHeader 方法：
+
+```javascript
+_renderHeader = ({section}) => {
+  return (
+    <Text style={styles.headingText}>
+      {section.title}
+    </Text>
+  )
+};
+```
+
+最後更新 render 方法：
+
+```javascript
+render() {
+  return (
+    <View style={styles.container}>
+      <SectionList sections={this.state.sections}
+                   renderItem={this._renderItem}
+                   renderSectionHeader={this._renderHeader}/>
+    </View>
+  );
+}
+```
+
+## Navigation
+
+導航，切換不同畫面的動作。一個畫面移動到另一個畫面的程式碼。網頁上屬於 window.history API 負責，這個 API 提供像 “上一頁” 和 “下一頁” 的功能。
+
+在 React Native 中，一般 Navigation 元件是內建的：
+
+- `<Navigator>`
+- `<NavigatorIOS>`
+
+以及社群開發的：
+
+- `<StackNavigator>` (react-navigation 函式提供)
+
+為了在行動裝置 app 裡的畫面間移動，所以必須要有 Navigation 的邏輯，還要具備 “深度連結” (deep linking) 的功能，這樣使用者才能藉由一個 URL 跳到 app 中指定的畫面。
+
+第十章深入討論 Navigation
+
+## 組織用元件
+
+還有很多其他用來組織的元件，幾個好用的如 `<TabBarIOS>`、`<SegmentedControlIOS>`，以及 `<DrawerLayoutAndroid>` 和 `<ToolbarAndroid>`。
+
+這些都是由該平台上 UI 元素的原生 API 重新包裝而來。
+
+寫應用程式，這些元件在組織多畫面非常有用。
+
+- `<TabBarIOS>` 和 `<DrawerLayoutAndroid>` 可切換多種模式或功能
+- `<SegmentedControlIOS>` 和 `<ToolbarAndroid>` 更適合較小一點的控制
+
+參考不同平台的設計規範，以更適當的使用這些元件：
+
+- [https://developer.android.com/guide/topics/resources/drawable-resource#Bitmap](https://developer.android.com/guide/topics/resources/drawable-resource#Bitmap)
+- [https://developer.apple.com/design/human-interface-guidelines/ios/overview/themes/](https://developer.apple.com/design/human-interface-guidelines/ios/overview/themes/)
+
+
+第七章會深入說明使用不同平台的元件
+
+## 總結
+
+- 多個幾個重要元件
+- 客製的觸控處理
+
+下一章將討論樣式設定，以及如何在行動裝置 app 上使用 React Native。
