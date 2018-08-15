@@ -502,3 +502,114 @@ export default PanResponderExample;
   - 底層或客製 list 處理：`<VirtualizedList>`
 
 ### 使用基本的 FlatList 元件
+
+這裡會使用到它的兩個屬性：
+
+- data
+- renderItem
+
+```javascript
+<FlatList
+  data={this.state.data}
+  renderItem={this._renderItem} />
+```
+
+- data 應該是一個陣列型態，每個元素具有唯一 key 屬性，並可以加上你想用的其他屬性
+- renderItem 是一個函式，這個函式會回傳一個元件，該元件是 data 陣列中的其中一個元素
+
+```javascript
+import React from 'react';
+import { StyleSheet, Text, View, FlatList } from 'react-native';
+
+export default class App extends React.Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: [
+        {key: 'a'},
+        {key: 'b'},
+        {key: 'c'},
+        {key: 'd'},
+        {key: 'a longer example'},
+        {key: 'e'},
+        {key: 'f'},
+        {key: 'g'},
+        {key: 'h'},
+        {key: 'i'},
+        {key: 'j'},
+        {key: 'k'},
+        {key: 'l'},
+        {key: 'm'},
+        {key: 'n'},
+        {key: 'o'},
+        {key: 'p'},
+      ]
+    };
+  }
+
+  _renderItem = (data) => {
+    return <Text style={styles.row}>{data.item.key}</Text>
+  };
+
+  render() {
+    return (
+      <View style={styles.container}>
+        <FlatList data={this.state.data} renderItem={this._renderItem}/>
+      </View>
+    );
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5FCFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  row: {
+    fontSize: 24,
+    padding: 42,
+    borderWidth: 1,
+    borderColor: '#DDDDDD'
+  }
+});
+```
+
+renderItem 傳出對應 item 屬性的資料。可簡化：
+
+```javascript
+_renderItem = ({item}) => {
+  return <Text style={styles.row}>{item.key}</Text>
+};
+```
+
+### 更新 `<FlatList>` 內容
+
+我們將使用紐約時報 API 建立一個簡單的暢銷書排行 app。
+
+一開始先使用假的資料來代替：
+
+```javascript
+const mockBooks = [
+  {
+    rank: 1,
+    title: "GATHERING PREY",
+    author: "John Sandford",
+    book_image: "http://du.ec2.nytimes.com.s3.amazonaws.com/prd/books/9780399168796.jpg"
+  },
+  {
+    rank: 2,
+    title: "MEMORY MAN",
+    author: "David Baldacci",
+    book_image: "http://du.ec2.nytimes.com.s3.amazonaws.com/prd/books/9781455586387.jpg"
+  }
+];
+````
+
+然後加入一個可以 render 這些假資料的元件 `<BookItem>`：
+
+```javascript
+
+```
