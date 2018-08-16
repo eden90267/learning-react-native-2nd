@@ -231,3 +231,154 @@ export default {
 
 - 更多錯誤訊息
 - 更多 UI 提示
+
+## 取用使用者的影像和照相機
+
+> 需要使用完整的 Native 程式碼專案  
+> react-native-cli 建立 or create-react-native-app 建立 + 升級 (ejected) 的專案。
+
+能存取手機本地影像和照相機對許多行動裝置應用程式也是很重要的功能，這一節，我們會操作使用者的影像資料及照相機。
+
+以 [weather-app](https://github.com/eden90267/weather-app) 繼續使用，以使用者膠卷影像改變背景。
+
+## 操作 CameraRoll 模組
+
+React Native 提供一個操作相機膠卷的介面，相機膠卷裡有使用者手機照相機所拍下的照片。
+
+基本存取相機膠卷不是太難，首先要匯入 CameraRoll 模組：
+
+```javascript
+import {CameraRoll} from 'react-native';
+```
+
+然後利用這個模組取得使用者照片的資訊：
+
+```javascript
+CameraRoll.getPhotos(
+  {first: 1},
+  (data) => {
+    console.log(data);
+  },
+  (error) => {
+    console.warn(error);
+  }
+)
+```
+
+呼叫 getPhotos 搭配傳入適當的 query，它就會回傳一些相機膠捲相關的資訊。
+
+到 weather-app ，以一個新的 `<PhotoBackdrop>` 元件換掉最上層的 `<Image>`
+元件。現在 `<PhotoBackdrop>` 的功能僅有顯示使用者相機膠卷裡的一張照片。
+
+```javascript
+import React, {Component} from 'react';
+import {ImageBackground, CameraRoll} from 'react-native';
+
+import styles from './style';
+
+class PhotoBackdrop extends Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      photoSource: null
+    };
+  }
+
+  componentDidMount() {
+    CameraRoll.getPhotos({first: 1}).then(data => {
+      this.setState({photoSource: {uri: data.edges[3].node.image.uri}});
+    }, error => {
+      console.warn(error);
+    })
+  }
+
+  render() {
+    return (
+      <ImageBackground style={styles.backdrop}
+                       source={this.state.photoSource}
+                       imageStyle={{resizeMode: 'cover'}}>
+        {this.props.children}
+      </ImageBackground>
+    );
+  }
+}
+
+export default PhotoBackdrop;
+```
+
+CameraRoll.getPhotos 有三個傳入參數：
+
+- 帶數個參數的物件
+- 成功回呼函式
+- 錯誤回呼函式
+
+### 用 GetPhotoParams 取得影像
+
+getPhotoParams 物件可以接受多種設定，可以查看 [React Native 原始碼](https://github.com/facebook/react-native/blob/master/Libraries/CameraRoll/CameraRoll.js#L46) 看看有哪些設定適合我們使用：
+
+- first
+
+  數值；指定從膠卷最新的照片中取得的張數
+
+- after
+
+  字串；符合 page_info {end_cursor} 的指標，由前一次 getPhotos 回傳
+
+- groupTypes
+
+  字串；指定分組方式進行過濾，值可以是 Album、All、Event 等；原始碼裡有所有支援的分組方式
+
+- groupName
+
+  字串；指定群組名稱進行過濾，例如 Recent Photos 或相簿名稱
+
+- assetType
+
+  可以是 All、Photos 或 Videos；用資產類別進行過濾
+
+- mimeTypes
+
+  字串陣列；基於 mimetype (像是 image/jpeg ) 的過濾器
+
+### render 一張相機膠卷影像
+
+從相機膠卷收到一張影像後，要如何把它 render 出來呢？先看一下成功的回呼函式：
+
+```javascript
+(data) => {
+  this.setState({
+    photoSource: {uri: data.edges[3].node.image.uri}
+  });
+}
+```
+
+每個 data.edges 裡的物件都有一個 node，node 代表一張相片，從 node
+也可以得到實際資產的 URI。
+
+### 上傳一張影像到 Server
+
+React Native 的 XHR 模組內建之影像上傳功能基本使用方法如下：
+
+```javascript
+let formdata = new FormData();
+// ...
+formdata.append('image', {...this.state.randomPhoto, name: 'image.jpg'});
+// ...
+xhr.send(formdata);
+```
+
+XHR 是 XMLHeadRequest 的縮寫，React Native 將 XHR API 實作在 iOS 網路 API
+之上。和地理資訊類似，React Native 的 XHR 實作也符合 MDN 規範。
+
+使用 XHR 做網路 request 比 Fetch API 難一些，但基本的方法看起來像：
+
+```javascript
+let xhr = new XMLHttpRequest();
+xhr.open('POST', 'http://posttestserver.com/post.php');
+let formdata = new FormData();
+formdata.append('image', {...this.state.photo, name: 'image.jpg'});
+xhr.send(formdata);
+```
+
+這裡忽略向 XHR request 註冊多個回呼韓式的部分。
