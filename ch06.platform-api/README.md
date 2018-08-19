@@ -381,4 +381,43 @@ formdata.append('image', {...this.state.photo, name: 'image.jpg'});
 xhr.send(formdata);
 ```
 
-這裡忽略向 XHR request 註冊多個回呼韓式的部分。
+這裡忽略向 XHR request 註冊多個回呼函式的部分。
+
+## 用 AsyncStorage 儲存資料
+
+持續追蹤某些類型資料？React Native 提供了 AsyncStorage 模組。
+
+AsyncStorage 是一個全域的鍵值 (key-value) 儲存工具。跟 Web 的 LocalStorage
+十分相似，雖各種實作平台有差異，不過不論你使用的是 Android 還是 iOS，JavaScript
+API 介面是一樣的。
+
+AsyncStorage 儲存鍵，可以是任意符合 @AppName:key 格式的字串，像是：
+
+```javascript
+const STORAGE_KEY = '@SmarterWeather:zip';
+```
+
+AsyncStorage 的 getItem 與 setItem 都有對應回傳值。以下範例：
+
+```javascript
+AsyncStorage.getItem(STORAGE_KEY)
+  .then((value) => {
+    if (value !== null) {
+      this._getForecastForZip(value);
+    }
+  })
+  .catch((error) => console.log('AsyncStorage error: ' + error.message))
+  .done();
+```
+
+在 _getForecaseForZip 中，我們可將郵遞區號值儲存起來：
+
+```javascript
+AsyncStorage.setItem(STORAGE_KEY, zip)
+  .then(() => console.log('Saved selection to disk: ' + zip))
+  .then((error) => console.log('AsyncStorage error: ' + error.message))
+  .done();
+```
+
+AsyncStorage 另外也提供刪除、合併及取回所有可用資料鍵的功能。
+
